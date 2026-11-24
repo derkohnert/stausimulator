@@ -34,6 +34,13 @@ for(const speed of [0,10]){
  assert.equal(run(`setup();var entrant=addCar('car');entrant.ramp=.5;entrant.rampV=${speed};var target=mergeGate()-rampSpan()/2;cars=[makeCar(0,target-6),makeCar(0,target+6)];cars.forEach(c=>c.v=${speed});advanceQueue();cars.includes(entrant)&&!!entrant.laneChange`),true);
  assert.equal(run(`setup();entrant=addCar('car');entrant.ramp=.5;cars=[makeCar(0,target)];advanceQueue();queue.includes(entrant)`),true);
 }
+// Entry is possible throughout the marked lane, including near its downstream end.
+for(const fraction of [.33,.60,.86]){
+ assert.equal(run(`setup();var mergingCar=addCar('car');mergingCar.ramp=${fraction};advanceQueue();cars.includes(mergingCar)&&!!mergingCar.laneChange`),true);
+}
+for(const previousWinner of ['main','ramp']){
+ assert.equal(run(`setup();lastZipperWinner='${previousWinner}';var z=addCar('car');z.ramp=.55;z.rampV=8;var neighbour=makeCar(0,mergeGate()-rampSpan()*.45);neighbour.v=8;cars=[neighbour];advanceQueue();queue.includes(z)&&('${previousWinner}'==='main'?neighbour.zipperBrakeUntil>time:z.rampV<8)`),true);
+}
 // Normal traffic continues merging without emergency teleports.
 for(const lanes of [1,2])for(const count of [6,30]){
  const result=run(`setup(${lanes},${count});if(${count}===30)obstacles.push({lane:0,pos:cfg.length*.8,obstacle:true});for(let i=0;i<3;i++)addCar('car');var nudges=0;for(let i=0;i<2400;i++){step();nudges+=[...cars,...queue].filter(c=>c.deadlockMovedAt===time).length}JSON.stringify({waiting:queue.length,nudges})`);

@@ -29,6 +29,11 @@ assert.equal(run(`setup();cars=[makeCar(0,30),makeCar(0,30),makeCar(0,30)];cars.
 // Emergency corrections must not cross a red light or cone in either direction.
 assert.equal(run(`setup();a=makeCar(0,30);b=makeCar(0,30);cars=[a,b];signals=[{id:1,lane:0,pos:34}];obstacles=[{lane:0,pos:26,obstacle:true}];let original=a.pos;nudgeConflict(a,cars,3);a.pos===original`),true);
 assert.equal(run(`setup();cars=[makeCar(0,30),makeCar(0,30)];cars.forEach(c=>c.v=0);freezeArbitrate(1.5);let first=$('laneStatus').textContent;setup();cars=[makeCar(0,30),makeCar(0,30)];cars.forEach(c=>c.v=0);freezeArbitrate(1.5);first===$('laneStatus').textContent`),true);
+// Bumper gaps below the old five-metre threshold, both parked and moving.
+for(const speed of [0,10]){
+ assert.equal(run(`setup();var entrant=addCar('car');entrant.ramp=.5;entrant.rampV=${speed};var target=mergeGate()-rampSpan()/2;cars=[makeCar(0,target-6),makeCar(0,target+6)];cars.forEach(c=>c.v=${speed});advanceQueue();cars.includes(entrant)&&!!entrant.laneChange`),true);
+ assert.equal(run(`setup();entrant=addCar('car');entrant.ramp=.5;cars=[makeCar(0,target)];advanceQueue();queue.includes(entrant)`),true);
+}
 // Normal traffic continues merging without emergency teleports.
 for(const lanes of [1,2])for(const count of [6,30]){
  const result=run(`setup(${lanes},${count});if(${count}===30)obstacles.push({lane:0,pos:cfg.length*.8,obstacle:true});for(let i=0;i<3;i++)addCar('car');var nudges=0;for(let i=0;i<2400;i++){step();nudges+=[...cars,...queue].filter(c=>c.deadlockMovedAt===time).length}JSON.stringify({waiting:queue.length,nudges})`);

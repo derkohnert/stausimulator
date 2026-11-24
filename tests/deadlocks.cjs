@@ -29,17 +29,18 @@ assert.equal(run(`setup();cars=[makeCar(0,30),makeCar(0,30),makeCar(0,30)];cars.
 // Emergency corrections must not cross a red light or cone in either direction.
 assert.equal(run(`setup();a=makeCar(0,30);b=makeCar(0,30);cars=[a,b];signals=[{id:1,lane:0,pos:34}];obstacles=[{lane:0,pos:26,obstacle:true}];let original=a.pos;nudgeConflict(a,cars,3);a.pos===original`),true);
 assert.equal(run(`setup();cars=[makeCar(0,30),makeCar(0,30)];cars.forEach(c=>c.v=0);freezeArbitrate(1.5);let first=$('laneStatus').textContent;setup();cars=[makeCar(0,30),makeCar(0,30)];cars.forEach(c=>c.v=0);freezeArbitrate(1.5);first===$('laneStatus').textContent`),true);
-// Bumper gaps below the old five-metre threshold, both parked and moving.
-for(const speed of [0,10]){
+// A moving entrant can use a bumper gap below the old five-metre threshold.
+{ const speed=10;
  assert.equal(run(`setup();var entrant=addCar('car');entrant.ramp=.84;entrant.rampV=${speed};var target=mergeGate()-rampSpan()*.16;cars=[makeCar(0,target-6),makeCar(0,target+6)];cars.forEach(c=>c.v=${speed});advanceQueue();cars.includes(entrant)&&!!entrant.laneChange`),true);
  assert.equal(run(`setup();entrant=addCar('car');entrant.ramp=.84;cars=[makeCar(0,target)];advanceQueue();queue.includes(entrant)`),true);
 }
 // Entry is possible throughout the final fifth, including at the end.
 for(const fraction of [.81,.93,1]){
- assert.equal(run(`setup();var mergingCar=addCar('car');mergingCar.ramp=${fraction};advanceQueue();cars.includes(mergingCar)&&!!mergingCar.laneChange`),true);
+ assert.equal(run(`setup();var mergingCar=addCar('car');mergingCar.ramp=${fraction};mergingCar.rampV=5;advanceQueue();cars.includes(mergingCar)&&!!mergingCar.laneChange`),true);
 }
-for(const previousWinner of ['main','ramp']){
- assert.equal(run(`setup();lastZipperWinner='${previousWinner}';var z=addCar('car');z.ramp=.75;z.rampV=8;var neighbour=makeCar(0,mergeGate()-rampSpan()*.25);neighbour.v=8;cars=[neighbour];advanceQueue();queue.includes(z)&&('${previousWinner}'==='main'?neighbour.zipperBrakeUntil>time:z.rampV<8)`),true);
+assert.equal(run(`setup();var z=addCar('car');z.ramp=.85;z.rampV=0;advanceQueue();queue.includes(z)&&z.ramp>.85`),true);
+for(const speed of [7,8,9]){
+ assert.equal(run(`setup();z=addCar('car');z.ramp=.75;z.rampV=8;var neighbour=makeCar(0,mergeGate()-rampSpan()*.25-4);neighbour.v=${speed};cars=[neighbour];advanceQueue();queue.includes(z)&&(${speed}===7?!neighbour.zipperDecel:neighbour.zipperDecel>0&&neighbour.zipperDecel<=1.2)&&z.ramp>=.75`),true);
 }
 assert.equal(run(`setup();var waiting=addCar('car');waiting.ramp=.6;advanceQueue();queue.includes(waiting)`),true);
 assert.equal(run(`waiting.ramp=.98;waiting.rampV=2;var blocker=makeCar(0,mergeGate());blocker.v=0;cars=[blocker];for(let i=0;i<200;i++)advanceQueue();queue.includes(waiting)&&waiting.ramp===1&&waiting.rampV===0`),true);

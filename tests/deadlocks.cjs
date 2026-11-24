@@ -31,16 +31,20 @@ assert.equal(run(`setup();a=makeCar(0,30);b=makeCar(0,30);cars=[a,b];signals=[{i
 assert.equal(run(`setup();cars=[makeCar(0,30),makeCar(0,30)];cars.forEach(c=>c.v=0);freezeArbitrate(1.5);let first=$('laneStatus').textContent;setup();cars=[makeCar(0,30),makeCar(0,30)];cars.forEach(c=>c.v=0);freezeArbitrate(1.5);first===$('laneStatus').textContent`),true);
 // Bumper gaps below the old five-metre threshold, both parked and moving.
 for(const speed of [0,10]){
- assert.equal(run(`setup();var entrant=addCar('car');entrant.ramp=.5;entrant.rampV=${speed};var target=mergeGate()-rampSpan()/2;cars=[makeCar(0,target-6),makeCar(0,target+6)];cars.forEach(c=>c.v=${speed});advanceQueue();cars.includes(entrant)&&!!entrant.laneChange`),true);
- assert.equal(run(`setup();entrant=addCar('car');entrant.ramp=.5;cars=[makeCar(0,target)];advanceQueue();queue.includes(entrant)`),true);
+ assert.equal(run(`setup();var entrant=addCar('car');entrant.ramp=.84;entrant.rampV=${speed};var target=mergeGate()-rampSpan()*.16;cars=[makeCar(0,target-6),makeCar(0,target+6)];cars.forEach(c=>c.v=${speed});advanceQueue();cars.includes(entrant)&&!!entrant.laneChange`),true);
+ assert.equal(run(`setup();entrant=addCar('car');entrant.ramp=.84;cars=[makeCar(0,target)];advanceQueue();queue.includes(entrant)`),true);
 }
-// Entry is possible throughout the marked lane, including near its downstream end.
-for(const fraction of [.33,.60,.86]){
+// Entry is possible throughout the final fifth, including at the end.
+for(const fraction of [.81,.93,1]){
  assert.equal(run(`setup();var mergingCar=addCar('car');mergingCar.ramp=${fraction};advanceQueue();cars.includes(mergingCar)&&!!mergingCar.laneChange`),true);
 }
 for(const previousWinner of ['main','ramp']){
- assert.equal(run(`setup();lastZipperWinner='${previousWinner}';var z=addCar('car');z.ramp=.55;z.rampV=8;var neighbour=makeCar(0,mergeGate()-rampSpan()*.45);neighbour.v=8;cars=[neighbour];advanceQueue();queue.includes(z)&&('${previousWinner}'==='main'?neighbour.zipperBrakeUntil>time:z.rampV<8)`),true);
+ assert.equal(run(`setup();lastZipperWinner='${previousWinner}';var z=addCar('car');z.ramp=.75;z.rampV=8;var neighbour=makeCar(0,mergeGate()-rampSpan()*.25);neighbour.v=8;cars=[neighbour];advanceQueue();queue.includes(z)&&('${previousWinner}'==='main'?neighbour.zipperBrakeUntil>time:z.rampV<8)`),true);
 }
+assert.equal(run(`setup();var waiting=addCar('car');waiting.ramp=.6;advanceQueue();queue.includes(waiting)`),true);
+assert.equal(run(`waiting.ramp=.98;waiting.rampV=2;var blocker=makeCar(0,mergeGate());blocker.v=0;cars=[blocker];for(let i=0;i<200;i++)advanceQueue();queue.includes(waiting)&&waiting.ramp===1&&waiting.rampV===0`),true);
+assert.equal(run(`cars=[];advanceQueue();cars.includes(waiting)&&!!waiting.laneChange`),true);
+assert.equal(run(`setup();var follower=makeCar(0,40),leader=makeCar(0,48);cars=[follower,leader];leader.v=follower.v=10;follower.recoverGap=true;step();follower.v>9.9&&follower.v<10`),true);
 // Normal traffic continues merging without emergency teleports.
 for(const lanes of [1,2])for(const count of [6,30]){
  const result=run(`setup(${lanes},${count});if(${count}===30)obstacles.push({lane:0,pos:cfg.length*.8,obstacle:true});for(let i=0;i<3;i++)addCar('car');var nudges=0;for(let i=0;i<2400;i++){step();nudges+=[...cars,...queue].filter(c=>c.deadlockMovedAt===time).length}JSON.stringify({waiting:queue.length,nudges})`);
